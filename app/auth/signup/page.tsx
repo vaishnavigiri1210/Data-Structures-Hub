@@ -1,0 +1,142 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase, setStoredUser } from "@/lib/supabaseClient";
+import { soundEngine } from "@/lib/sound";
+
+export default function SignUpPage() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+    setLoading(true);
+
+    try {
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters long.");
+      }
+
+      if (supabase) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name },
+          },
+        });
+        if (error) throw error;
+        setStoredUser({
+          email: data.user?.email || email,
+          name: name || email.split("@")[0],
+        });
+      } else {
+        // Fallback local session registration
+        setStoredUser({
+          email,
+          name: name || email.split("@")[0],
+        });
+      }
+
+      soundEngine.playSuccess();
+      setSuccessMsg("Account registered successfully! Redirecting...");
+      setTimeout(() => {
+        router.push("/");
+        router.refresh();
+      }, 1000);
+    } catch (err: unknown) {
+      soundEngine.playError();
+      const msg = err instanceof Error ? err.message : "Failed to register account.";
+      setErrorMsg(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center p-8 min-h-[calc(100vh-140px)]">
+      <div className="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 shadow-xl">
+        <div className="text-center mb-5">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 font-bold flex items-center justify-center mx-auto mb-2 text-base">
+            DS
+          </div>
+          <h3 className="text-base font-bold text-slate-900">Create Learner Account</h3>
+          <p className="text-xs text-slate-500">Track and save your visualizer progress</p>
+        </div>
+
+        {errorMsg && (
+          <div className="p-2.5 mb-3 bg-rose-50 text-rose-600 text-xs rounded-lg border border-rose-200">
+            {errorMsg}
+          </div>
+        )}
+        {successMsg && (
+          <div className="p-2.5 mb-3 bg-emerald-50 text-emerald-600 text-xs rounded-lg border border-emerald-200">
+            {successMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSignUp} className="space-y-3.5">
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-slate-600">Full Name</label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your Name"
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-blue-500 outline-none"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-slate-600">Email Address</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="learner@example.com"
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-blue-500 outline-none"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-slate-600">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-blue-500 outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg text-xs shadow-sm transition-all mt-2"
+          >
+            {loading ? "Creating Account..." : "Register Account"}
+          </button>
+        </form>
+
+        <div className="mt-4 text-center text-xs text-slate-500">
+          <span>Already registered?</span>
+          <Link href="/auth/login" className="text-blue-600 font-semibold hover:underline ml-1">
+            Log In
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
