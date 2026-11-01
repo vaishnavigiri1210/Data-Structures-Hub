@@ -21,8 +21,8 @@ export default function LoginPage() {
     try {
       if (supabase) {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: email.trim(),
+          password: password.trim(),
         });
         if (error) throw error;
         setStoredUser({
@@ -30,9 +30,8 @@ export default function LoginPage() {
           name: data.user.user_metadata?.full_name || email.split("@")[0],
         });
       } else {
-        // Safe local session mode when external API is offline
         setStoredUser({
-          email,
+          email: email.trim(),
           name: email.split("@")[0],
         });
       }
@@ -80,7 +79,15 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-semibold text-slate-600">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold text-slate-600">Password</label>
+              <Link
+                href="/auth/forgot-password"
+                className="text-[11px] text-blue-600 hover:underline font-medium"
+              >
+                Forgot Password?
+              </Link>
+            </div>
             <input
               type="password"
               required
