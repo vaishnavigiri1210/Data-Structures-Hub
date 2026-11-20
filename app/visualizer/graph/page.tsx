@@ -3,13 +3,6 @@
 import { useState, useRef } from "react";
 import { soundEngine } from "@/lib/sound";
 
-interface LogEntry {
-  id: number;
-  time: string;
-  message: string;
-  type: "info" | "success" | "error";
-}
-
 interface GraphNode {
   id: string;
   x: number;
@@ -26,19 +19,20 @@ interface GraphStep {
   visitedOrder: string[];
   frontier: string[];
   activeEdges: string[];
+  conceptTitle: string;
   explanation: string;
   logText: string;
   sound?: "step" | "done";
 }
 
 const NODES: GraphNode[] = [
-  { id: "A", x: 320, y: 42 },
-  { id: "B", x: 170, y: 118 },
-  { id: "C", x: 470, y: 118 },
-  { id: "D", x: 90, y: 222 },
-  { id: "E", x: 250, y: 222 },
-  { id: "F", x: 390, y: 222 },
-  { id: "G", x: 550, y: 222 },
+  { id: "A", x: 250, y: 40 },
+  { id: "B", x: 130, y: 120 },
+  { id: "C", x: 370, y: 120 },
+  { id: "D", x: 65, y: 225 },
+  { id: "E", x: 195, y: 225 },
+  { id: "F", x: 305, y: 225 },
+  { id: "G", x: 435, y: 225 },
 ];
 
 const EDGES: GraphEdge[] = [
@@ -51,7 +45,7 @@ const EDGES: GraphEdge[] = [
   { from: "E", to: "F" },
 ];
 
-const ADJACENCY_LIST: Record<string, string[]> = {
+const ADJ_LIST: Record<string, string[]> = {
   A: ["B", "C"],
   B: ["A", "D", "E"],
   C: ["A", "F", "G"],
@@ -66,21 +60,24 @@ function generateGraphSteps(startNode: string, algo: "BFS" | "DFS"): GraphStep[]
   const visited = new Set<string>();
   const order: string[] = [];
   const container: string[] = [startNode];
-  const edgesTraversed: string[] = [];
+  const edgesUsed: string[] = [];
 
-  if (algo === "BFS") {
-    visited.add(startNode);
-  }
+  if (algo === "BFS") visited.add(startNode);
 
   steps.push({
     activeNode: null,
     visitedOrder: [],
     frontier: [...container],
     activeEdges: [],
-    explanation: `Ready for ${algo}: Added starting vertex '${startNode}' to the ${
-      algo === "BFS" ? "Queue (FIFO)" : "Stack (LIFO)"
-    }. Click Auto Play or Next Step.`,
-    logText: `Initialized ${algo} starting at vertex ${startNode}`,
+    conceptTitle:
+      algo === "BFS"
+        ? "Breadth-First Search (BFS) — Level by Level"
+        : "Depth-First Search (DFS) — Branch by Branch",
+    explanation:
+      algo === "BFS"
+        ? `BFS uses a FIFO Queue. Starting at '${startNode}', it visits all immediate neighbors before moving deeper.`
+        : `DFS uses a LIFO Stack. Starting at '${startNode}', it dives as deep as possible along one branch before backtracking.`,
+    logText: `Workspace ready. Start vertex = ${startNode} (${algo}).`,
   });
 
   while (container.length > 0) {
@@ -97,39 +94,39 @@ function generateGraphSteps(startNode: string, algo: "BFS" | "DFS"): GraphStep[]
       activeNode: current,
       visitedOrder: [...order],
       frontier: [...container],
-      activeEdges: [...edgesTraversed],
-      explanation: `${
+      activeEdges: [...edgesUsed],
+      conceptTitle:
         algo === "BFS"
-          ? `Dequeued '${current}' from front of Queue`
-          : `Popped '${current}' from top of Stack`
-      } and marked it Visited. Now checking its unvisited neighbors: [${ADJACENCY_LIST[
+          ? `Dequeue '${current}' from Front of Queue`
+          : `Pop '${current}' from Top of Stack`,
+      explanation: `Mark vertex '${current}' as Visited. Next, inspect its adjacent neighbors: [ ${ADJ_LIST[
         current
-      ].join(", ")}].`,
+      ].join(", ")} ].`,
       logText: `Visited vertex ${current}`,
       sound: "step",
     });
 
-    const neighbors = ADJACENCY_LIST[current] || [];
-    const orderedNeighbors =
-      algo === "DFS" ? [...neighbors].reverse() : neighbors;
+    const neighbors = ADJ_LIST[current] || [];
+    const ordered = algo === "DFS" ? [...neighbors].reverse() : neighbors;
 
-    for (const neighbor of orderedNeighbors) {
+    for (const neighbor of ordered) {
       if (!visited.has(neighbor)) {
-        if (algo === "BFS") {
-          visited.add(neighbor);
-        }
+        if (algo === "BFS") visited.add(neighbor);
         container.push(neighbor);
-        edgesTraversed.push(`${current}-${neighbor}`, `${neighbor}-${current}`);
+        edgesUsed.push(`${current}-${neighbor}`, `${neighbor}-${current}`);
 
         steps.push({
           activeNode: current,
           visitedOrder: [...order],
           frontier: [...container],
-          activeEdges: [...edgesTraversed],
-          explanation: `Neighbor '${neighbor}' of '${current}' is unvisited → Added '${neighbor}' to the ${
-            algo === "BFS" ? "back of the Queue" : "top of the Stack"
+          activeEdges: [...edgesUsed],
+          conceptTitle: `Discovered Unvisited Neighbor '${neighbor}'`,
+          explanation: `Edge (${current} — ${neighbor}): '${neighbor}' has not been visited yet, so push it into the ${
+            algo === "BFS" ? "Queue" : "Stack"
           }.`,
-          logText: `Discovered edge ${current} → ${neighbor} (pushed ${neighbor})`,
+          logText: `Edge ${current} → ${neighbor} | Added ${neighbor} to ${
+            algo === "BFS" ? "Queue" : "Stack"
+          }`,
           sound: "step",
         });
       }
@@ -140,11 +137,10 @@ function generateGraphSteps(startNode: string, algo: "BFS" | "DFS"): GraphStep[]
     activeNode: null,
     visitedOrder: [...order],
     frontier: [],
-    activeEdges: [...edgesTraversed],
-    explanation: `${algo} Traversal Complete! All reachable vertices visited in order: ${order.join(
-      " → "
-    )}.`,
-    logText: `${algo} Complete: ${order.join(" → ")}`,
+    activeEdges: [...edgesUsed],
+    conceptTitle: `${algo} Traversal Complete!`,
+    explanation: `Every reachable vertex has been visited. Order: ${order.join(" → ")}.`,
+    logText: `${algo} finished: ${order.join(" → ")}`,
     sound: "done",
   });
 
@@ -152,39 +148,24 @@ function generateGraphSteps(startNode: string, algo: "BFS" | "DFS"): GraphStep[]
 }
 
 export default function GraphVisualizerPage() {
-  const [startNode, setStartNode] = useState<string>("A");
   const [algo, setAlgo] = useState<"BFS" | "DFS">("BFS");
+  const [startNode, setStartNode] = useState("A");
   const [steps, setSteps] = useState<GraphStep[]>(() =>
     generateGraphSteps("A", "BFS")
   );
   const [stepIndex, setStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [delayMs, setDelayMs] = useState(1200);
-  const [logs, setLogs] = useState<LogEntry[]>([
-    {
-      id: 1,
-      time: new Date().toLocaleTimeString(),
-      message: "Initialized Graph Visualizer with 7 vertices & 7 edges",
-      type: "info",
-    },
+  const [delayMs, setDelayMs] = useState(2200);
+  const [logs, setLogs] = useState<string[]>([
+    "Workspace ready. Click Start Traversal or Next Step.",
   ]);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const currentStep = steps[stepIndex] || steps[0];
 
-  const appendLog = (message: string, type: LogEntry["type"] = "info") => {
-    setLogs((prev) => [
-      {
-        id: Date.now() + Math.random(),
-        time: new Date().toLocaleTimeString(),
-        message,
-        type,
-      },
-      ...prev.slice(0, 29),
-    ]);
-  };
+  const addLog = (msg: string) => setLogs((prev) => [msg, ...prev.slice(0, 24)]);
 
-  const stopAutoPlay = () => {
+  const stopTimer = () => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -192,50 +173,41 @@ export default function GraphVisualizerPage() {
     setIsPlaying(false);
   };
 
-  const triggerStepFeedback = (step: GraphStep) => {
-    if (step.sound === "step") {
-      soundEngine.playPush();
-      appendLog(step.logText, "info");
-    } else if (step.sound === "done") {
-      soundEngine.playSuccess();
-      appendLog(step.logText, "success");
-    } else {
-      appendLog(step.logText, "info");
-    }
+  const playStepAudioAndLog = (step: GraphStep) => {
+    addLog(step.logText);
+    if (step.sound === "step") soundEngine.playStep();
+    else if (step.sound === "done") soundEngine.playSuccess();
   };
 
-  const handleConfigChange = (newStart: string, newAlgo: "BFS" | "DFS") => {
-    stopAutoPlay();
+  const handleUpdateConfig = (newStart: string, newAlgo: "BFS" | "DFS") => {
+    stopTimer();
     setStartNode(newStart);
     setAlgo(newAlgo);
     const newSteps = generateGraphSteps(newStart, newAlgo);
     setSteps(newSteps);
     setStepIndex(0);
-    appendLog(`Configured ${newAlgo} from start node ${newStart}`, "info");
+    addLog(`Set ${newAlgo} with start vertex ${newStart}.`);
   };
 
-  const handleNextStep = () => {
-    stopAutoPlay();
+  const handleNext = () => {
+    stopTimer();
     if (stepIndex < steps.length - 1) {
       const next = stepIndex + 1;
       setStepIndex(next);
-      triggerStepFeedback(steps[next]);
+      playStepAudioAndLog(steps[next]);
     }
   };
 
-  const handlePrevStep = () => {
-    stopAutoPlay();
-    if (stepIndex > 0) {
-      setStepIndex(stepIndex - 1);
-    }
+  const handlePrev = () => {
+    stopTimer();
+    if (stepIndex > 0) setStepIndex(stepIndex - 1);
   };
 
-  const handlePlayPause = () => {
+  const handleTogglePlay = () => {
     if (isPlaying) {
-      stopAutoPlay();
+      stopTimer();
       return;
     }
-
     let idx = stepIndex >= steps.length - 1 ? 0 : stepIndex;
     setStepIndex(idx);
     setIsPlaying(true);
@@ -243,348 +215,304 @@ export default function GraphVisualizerPage() {
     timerRef.current = setInterval(() => {
       idx += 1;
       if (idx >= steps.length) {
-        stopAutoPlay();
+        stopTimer();
         return;
       }
       setStepIndex(idx);
-      triggerStepFeedback(steps[idx]);
-      if (idx === steps.length - 1) {
-        stopAutoPlay();
-      }
+      playStepAudioAndLog(steps[idx]);
+      if (idx === steps.length - 1) stopTimer();
     }, delayMs);
   };
 
-  const handleReset = () => {
-    stopAutoPlay();
-    setStepIndex(0);
-    appendLog("Reset graph to Step 0", "info");
-  };
-
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-5">
-      {/* Header Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
-            Non-Linear Data Structure
-          </span>
-          <h2 className="text-xl font-bold text-slate-900 mt-1.5">
-            Graph Traversal (BFS & DFS)
-          </h2>
-          <p className="text-xs text-slate-500">
-            See how a Queue powers Breadth-First Search and a Stack powers Depth-First Search
-          </p>
-        </div>
-
-        {/* Algorithm Toggle Pills */}
-        <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
-          {(["BFS", "DFS"] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => handleConfigChange(startNode, mode)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                algo === mode
-                  ? "bg-white text-blue-600 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              {mode === "BFS" ? "BFS (Uses Queue)" : "DFS (Uses Stack)"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Start Vertex & Beginner Playback Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3">
-          <div>
-            <div className="text-xs font-bold text-slate-700">Start Vertex</div>
-            <div className="text-[11px] text-slate-400">
-              Click a node or choose here
-            </div>
-          </div>
-          <select
-            value={startNode}
-            onChange={(e) => handleConfigChange(e.target.value, algo)}
-            className="px-3 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-slate-50"
-          >
-            {NODES.map((n) => (
-              <option key={n.id} value={n.id}>
-                Node {n.id}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrevStep}
-              disabled={stepIndex === 0}
-              className="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 rounded-lg"
-            >
-              ◀ Prev
-            </button>
-            <button
-              onClick={handlePlayPause}
-              className={`px-4 py-1.5 text-xs font-semibold text-white rounded-lg ${
-                isPlaying
-                  ? "bg-amber-500 hover:bg-amber-600"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {isPlaying ? "⏸ Pause" : "▶ Auto Play"}
-            </button>
-            <button
-              onClick={handleNextStep}
-              disabled={stepIndex >= steps.length - 1}
-              className="px-3 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 disabled:opacity-40 rounded-lg"
-            >
-              Next Step ▶
-            </button>
-            <button
-              onClick={handleReset}
-              className="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg"
-            >
-              ↺ Reset
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-slate-500 font-medium">Speed:</span>
-            {[
-              { label: "Slow (1.8s)", ms: 1800 },
-              { label: "Normal (1.2s)", ms: 1200 },
-              { label: "Fast (0.5s)", ms: 500 },
-            ].map((preset) => (
+    <div className="p-6 max-w-6xl mx-auto space-y-4">
+      {/* 1. Top Variant Bar (Exact Linked List Style) */}
+      <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium text-slate-500">Algorithm:</span>
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+            {(["BFS", "DFS"] as const).map((mode) => (
               <button
-                key={preset.ms}
-                onClick={() => {
-                  stopAutoPlay();
-                  setDelayMs(preset.ms);
-                }}
-                className={`px-2 py-1 rounded text-[11px] font-semibold border ${
-                  delayMs === preset.ms
-                    ? "bg-blue-50 border-blue-300 text-blue-700"
-                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                key={mode}
+                onClick={() => handleUpdateConfig(startNode, mode)}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                  algo === mode
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                {preset.label}
+                {mode === "BFS" ? "BFS (Queue)" : "DFS (Stack)"}
               </button>
             ))}
           </div>
         </div>
+        <span className="text-xs font-mono text-slate-400">
+          G = (V, E) | Time: O(V + E)
+        </span>
       </div>
 
-      {/* Plain-English Live Explanation Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
-        <span className="text-lg">💡</span>
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
-            Step {stepIndex} of {steps.length - 1} — What is happening now:
-          </div>
-          <p className="text-sm font-semibold text-slate-800 mt-0.5">
-            {currentStep.explanation}
-          </p>
-        </div>
-      </div>
-
-      {/* Main Graph Canvas + Live Frontier State */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center shadow-xs">
-          <svg width="640" height="275" viewBox="0 0 640 275" className="max-w-full">
-            {EDGES.map((edge, idx) => {
-              const fromNode = NODES.find((n) => n.id === edge.from)!;
-              const toNode = NODES.find((n) => n.id === edge.to)!;
-              const isTraversed = currentStep.activeEdges.includes(
-                `${edge.from}-${edge.to}`
-              );
-
-              return (
-                <line
-                  key={idx}
-                  x1={fromNode.x}
-                  y1={fromNode.y}
-                  x2={toNode.x}
-                  y2={toNode.y}
-                  stroke={isTraversed ? "#10b981" : "#cbd5e1"}
-                  strokeWidth={isTraversed ? "3.5" : "2"}
-                  className="transition-all duration-300"
-                />
-              );
-            })}
-
-            {NODES.map((node) => {
-              const isCurrent = currentStep.activeNode === node.id;
-              const isVisited = currentStep.visitedOrder.includes(node.id);
-              const isInFrontier = currentStep.frontier.includes(node.id);
-
-              let fill = "#2563eb";
-              if (isCurrent) fill = "#f59e0b";
-              else if (isVisited) fill = "#10b981";
-              else if (isInFrontier) fill = "#8b5cf6";
-
-              return (
-                <g
-                  key={node.id}
+      {/* 2. Middle Split Row: Controls Card (Left) + Live Execution Log Card (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3.5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-medium text-slate-600">Speed:</span>
+              {[
+                { label: "Very Slow (2.8s)", ms: 2800 },
+                { label: "Slow (2.2s)", ms: 2200 },
+                { label: "Normal (1.2s)", ms: 1200 },
+              ].map((s) => (
+                <button
+                  key={s.ms}
                   onClick={() => {
-                    handleConfigChange(node.id, algo);
-                    soundEngine.playPush();
+                    stopTimer();
+                    setDelayMs(s.ms);
                   }}
-                  className="cursor-pointer"
+                  className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                    delayMs === s.ms
+                      ? "bg-blue-50 border-blue-300 text-blue-700"
+                      : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                  }`}
                 >
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r="23"
-                    fill={fill}
-                    stroke={startNode === node.id ? "#0f172a" : "none"}
-                    strokeWidth={startNode === node.id ? "2.5" : "0"}
-                    className="transition-colors duration-300"
-                  />
-                  <text
-                    x={node.x}
-                    y={node.y + 5}
-                    textAnchor="middle"
-                    fill="#ffffff"
-                    fontSize="14"
-                    fontWeight="bold"
-                  >
-                    {node.id}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <span className="text-[11px] font-mono text-slate-400">
+              Step {stepIndex}/{steps.length - 1}
+            </span>
+          </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-5 pt-3 border-t border-slate-100 w-full text-xs text-slate-600">
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-blue-600 inline-block" /> Unvisited
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-purple-500 inline-block" /> Waiting in {algo === "BFS" ? "Queue" : "Stack"}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-amber-500 inline-block" /> Current Vertex
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Visited
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-slate-600">Start Vertex:</span>
+            <select
+              value={startNode}
+              onChange={(e) => handleUpdateConfig(e.target.value, algo)}
+              className="px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-lg bg-slate-50"
+            >
+              {NODES.map((n) => (
+                <option key={n.id} value={n.id}>
+                  Node {n.id}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={handleTogglePlay}
+              className={`px-4 py-1.5 text-xs font-semibold text-white rounded-lg shadow-2xs ${
+                isPlaying ? "bg-amber-500" : "bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              {isPlaying ? "⏸ Pause" : `▶ Start ${algo}`}
+            </button>
+
+            <button
+              onClick={() => {
+                stopTimer();
+                setStepIndex(0);
+                addLog("Reset graph to Step 0.");
+              }}
+              className="px-3 py-1.5 text-xs font-medium bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-lg"
+            >
+              Reset
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              onClick={handlePrev}
+              disabled={stepIndex === 0}
+              className="px-3 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 rounded-lg"
+            >
+              ◀ Prev Step
+            </button>
+            <button
+              onClick={handleNext}
+              disabled={stepIndex >= steps.length - 1}
+              className="px-3 py-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 disabled:opacity-40 rounded-lg"
+            >
+              Next Step ▶
+            </button>
           </div>
         </div>
 
-        {/* Live Data Structure Container */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-              {algo === "BFS"
-                ? "Active BFS Queue (Front → Back)"
-                : "Active DFS Stack (Bottom → Top)"}
-            </h3>
-            <div className="min-h-[48px] p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center gap-2">
-              {currentStep.frontier.length === 0 ? (
-                <span className="text-xs text-slate-400 italic">Empty</span>
-              ) : (
-                currentStep.frontier.map((item, idx) => (
-                  <span
-                    key={`${item}-${idx}`}
-                    className="px-2.5 py-1 bg-purple-100 text-purple-700 border border-purple-200 rounded-lg font-bold text-xs"
-                  >
-                    {item}
-                  </span>
-                ))
-              )}
+        {/* Right Live Execution Log Card */}
+        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-4 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
+              <span className="text-xs font-bold text-slate-800">
+                Live Execution Log
+              </span>
             </div>
+            <button
+              onClick={() => setLogs([])}
+              className="text-[11px] text-slate-400 hover:text-slate-600"
+            >
+              Clear
+            </button>
           </div>
-
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-              Visited Sequence
-            </h3>
-            <div className="min-h-[48px] p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-wrap items-center gap-1.5">
-              {currentStep.visitedOrder.length === 0 ? (
-                <span className="text-xs text-slate-400 italic">Not started</span>
-              ) : (
-                currentStep.visitedOrder.map((node, i) => (
-                  <span key={node} className="flex items-center gap-1.5">
-                    <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold text-xs">
-                      {node}
-                    </span>
-                    {i < currentStep.visitedOrder.length - 1 && (
-                      <span className="text-slate-400 font-bold text-xs">→</span>
-                    )}
-                  </span>
-                ))
-              )}
-            </div>
+          <div className="font-mono text-xs text-slate-600 h-28 overflow-y-auto space-y-1">
+            {logs.length === 0 ? (
+              <div className="text-slate-400">&gt; Log cleared.</div>
+            ) : (
+              logs.map((entry, idx) => (
+                <div key={idx} className="leading-relaxed">
+                  <span className="text-slate-400 mr-1.5">&gt;</span>
+                  {entry}
+                </div>
+              ))
+            )}
           </div>
+        </div>
+      </div>
 
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1">
-            <div className="font-bold text-slate-800">
-              {algo === "BFS" ? "How BFS Works:" : "How DFS Works:"}
+      {/* 3. Main Full-Width Visualization Canvas */}
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4">
+        {/* Plain-English Concept Banner */}
+        <div className="bg-blue-50/80 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3">
+          <span className="text-base mt-0.5">💡</span>
+          <div>
+            <div className="text-xs font-bold text-blue-800">
+              {currentStep.conceptTitle}
             </div>
-            <p className="text-[11px] leading-relaxed">
-              {algo === "BFS"
-                ? "Explores all immediate neighbors level-by-level using a First-In-First-Out (FIFO) Queue."
-                : "Explores as deep as possible down one branch before backtracking using a Last-In-First-Out (LIFO) Stack."}
+            <p className="text-xs text-slate-700 mt-0.5 leading-relaxed">
+              {currentStep.explanation}
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Bottom Complexity Card + Execution Log */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
-          <h3 className="text-sm font-bold text-slate-900">Graph Complexity</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Every vertex (<strong>V</strong>) and edge (<strong>E</strong>) is
-            visited once during traversal.
-          </p>
-          <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-slate-50 p-2 rounded-lg">
-              <span className="text-[10px] text-slate-400 block">Time Complexity</span>
-              <span className="font-bold text-blue-600">O(V + E)</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          {/* Interactive Graph SVG */}
+          <div className="lg:col-span-7 flex justify-center">
+            <svg width="500" height="265" viewBox="0 0 500 265" className="max-w-full">
+              {EDGES.map((edge, i) => {
+                const u = NODES.find((n) => n.id === edge.from)!;
+                const v = NODES.find((n) => n.id === edge.to)!;
+                const active = currentStep.activeEdges.includes(
+                  `${edge.from}-${edge.to}`
+                );
+                return (
+                  <line
+                    key={i}
+                    x1={u.x}
+                    y1={u.y}
+                    x2={v.x}
+                    y2={v.y}
+                    stroke={active ? "#10b981" : "#cbd5e1"}
+                    strokeWidth={active ? "3.5" : "2"}
+                  />
+                );
+              })}
+              {NODES.map((node) => {
+                const isActive = currentStep.activeNode === node.id;
+                const isVisited = currentStep.visitedOrder.includes(node.id);
+                const isFrontier = currentStep.frontier.includes(node.id);
+
+                let fill = "#2563eb";
+                if (isActive) fill = "#f59e0b";
+                else if (isVisited) fill = "#10b981";
+                else if (isFrontier) fill = "#8b5cf6";
+
+                return (
+                  <g
+                    key={node.id}
+                    onClick={() => {
+                      handleUpdateConfig(node.id, algo);
+                      soundEngine.playStep();
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r="22"
+                      fill={fill}
+                      stroke={startNode === node.id ? "#0f172a" : "none"}
+                      strokeWidth={startNode === node.id ? "2.5" : "0"}
+                    />
+                    <text
+                      x={node.x}
+                      y={node.y + 5}
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="13"
+                      fontWeight="bold"
+                    >
+                      {node.id}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Right Side: Live Queue / Stack & Visited Memory State */}
+          <div className="lg:col-span-5 space-y-3">
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                {algo === "BFS"
+                  ? "Queue Memory (FIFO — Front Left)"
+                  : "Stack Memory (LIFO — Top Right)"}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 min-h-[34px]">
+                {currentStep.frontier.length === 0 ? (
+                  <span className="font-mono text-xs text-slate-400">
+                    [ Empty ]
+                  </span>
+                ) : (
+                  currentStep.frontier.map((item, idx) => (
+                    <span
+                      key={`${item}-${idx}`}
+                      className="px-2.5 py-1 bg-purple-100 text-purple-800 border border-purple-200 rounded font-mono font-bold text-xs"
+                    >
+                      {item}
+                    </span>
+                  ))
+                )}
+              </div>
             </div>
-            <div className="bg-slate-50 p-2 rounded-lg">
-              <span className="text-[10px] text-slate-400 block">Space Complexity</span>
-              <span className="font-bold text-emerald-600">O(V)</span>
+
+            <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 mb-2">
+                Visited Sequence
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 min-h-[34px]">
+                {currentStep.visitedOrder.length === 0 ? (
+                  <span className="font-mono text-xs text-slate-400">
+                    [ None yet ]
+                  </span>
+                ) : (
+                  currentStep.visitedOrder.map((v, idx) => (
+                    <span key={v} className="flex items-center gap-1.5">
+                      <span className="px-2.5 py-1 bg-emerald-600 text-white rounded font-mono font-bold text-xs">
+                        {v}
+                      </span>
+                      {idx < currentStep.visitedOrder.length - 1 && (
+                        <span className="text-slate-400 font-mono text-xs">→</span>
+                      )}
+                    </span>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-slate-900">Execution Trace Log</h3>
-            <button
-              onClick={() => setLogs([])}
-              className="text-[11px] font-semibold text-slate-400 hover:text-rose-500"
-            >
-              Clear Log
-            </button>
-          </div>
-          <div className="bg-slate-900 text-slate-200 rounded-xl p-3.5 font-mono text-xs h-44 overflow-y-auto space-y-1.5">
-            {logs.map((entry) => (
-              <div
-                key={entry.id}
-                className="flex items-start gap-2 border-b border-slate-800/60 pb-1"
-              >
-                <span className="text-slate-500 text-[10px] shrink-0">
-                  [{entry.time}]
-                </span>
-                <span
-                  className={
-                    entry.type === "success"
-                      ? "text-emerald-400"
-                      : entry.type === "error"
-                      ? "text-rose-400"
-                      : "text-blue-300"
-                  }
-                >
-                  {entry.message}
-                </span>
-              </div>
-            ))}
-          </div>
+        {/* Color Key */}
+        <div className="flex flex-wrap items-center justify-center gap-6 pt-3 border-t border-slate-100 text-xs text-slate-500">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" /> Unvisited
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> In {algo === "BFS" ? "Queue" : "Stack"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Current Vertex
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Visited
+          </span>
         </div>
       </div>
     </div>
