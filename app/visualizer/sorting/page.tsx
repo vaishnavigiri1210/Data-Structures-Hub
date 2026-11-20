@@ -50,7 +50,7 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
   const steps: SortStep[] = [];
   const arr = [...initialArr];
   const n = arr.length;
-  const locked = new Set<number>();
+  const sortedSet = new Set<number>();
 
   steps.push({
     array: [...arr],
@@ -70,7 +70,7 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
           array: [...arr],
           comparing: [j, j + 1],
           swapping: [],
-          sorted: Array.from(locked),
+          sorted: Array.from(sortedSet),
           conceptTitle: `Pass ${i + 1}: Compare Index [${j}] and [${j + 1}]`,
           explanation: `Is ${arr[j]} > ${arr[j + 1]}? ${
             arr[j] > arr[j + 1]
@@ -88,7 +88,7 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
             array: [...arr],
             comparing: [],
             swapping: [j, j + 1],
-            sorted: Array.from(locked),
+            sorted: Array.from(sortedSet),
             conceptTitle: `Swapped ${arr[j + 1]} and ${arr[j]}`,
             explanation: `Moved larger value ${arr[j + 1]} one step closer to the right end.`,
             logText: `Swapped [${j}] ↔ [${j + 1}] (${arr[j]}, ${arr[j + 1]})`,
@@ -96,22 +96,22 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
           });
         }
       }
-      locked.add(n - 1 - i);
+      sortedSet.add(n - 1 - i);
       steps.push({
         array: [...arr],
         comparing: [],
         swapping: [],
-        sorted: Array.from(locked),
-        conceptTitle: `Pass ${i + 1} Complete — Index [${n - 1 - i}] Locked`,
-        explanation: `${arr[n - 1 - i]} has bubbled to its final sorted position and won't move again.`,
-        logText: `Locked ${arr[n - 1 - i]} at index [${n - 1 - i}]`,
+        sorted: Array.from(sortedSet),
+        conceptTitle: `Pass ${i + 1} Complete — Index [${n - 1 - i}] Sorted`,
+        explanation: `${arr[n - 1 - i]} has bubbled into its final sorted position.`,
+        logText: `Index [${n - 1 - i}] (${arr[n - 1 - i]}) is now sorted`,
       });
       if (!anySwap) {
-        for (let k = 0; k < n; k++) locked.add(k);
+        for (let k = 0; k < n; k++) sortedSet.add(k);
         break;
       }
     }
-    locked.add(0);
+    sortedSet.add(0);
   } else if (algo === "selection") {
     for (let i = 0; i < n; i++) {
       let minIdx = i;
@@ -120,7 +120,7 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
           array: [...arr],
           comparing: [minIdx, j],
           swapping: [],
-          sorted: Array.from(locked),
+          sorted: Array.from(sortedSet),
           conceptTitle: `Pass ${i + 1}: Hunting for Minimum`,
           explanation: `Current minimum is ${arr[minIdx]} at [${minIdx}]. Checking if [${j}] (${arr[j]}) is even smaller.`,
           logText: `Compare min [${minIdx}]=${arr[minIdx]} vs [${j}]=${arr[j]}`,
@@ -136,17 +136,17 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
           array: [...arr],
           comparing: [],
           swapping: [i, minIdx],
-          sorted: Array.from(locked),
+          sorted: Array.from(sortedSet),
           conceptTitle: `Place Minimum ${arr[i]} at Index [${i}]`,
           explanation: `Swapped smallest unsorted element (${arr[i]}) into sorted slot [${i}].`,
           logText: `Swapped ${arr[i]} into index [${i}]`,
           sound: "step",
         });
       }
-      locked.add(i);
+      sortedSet.add(i);
     }
   } else if (algo === "insertion") {
-    locked.add(0);
+    sortedSet.add(0);
     for (let i = 1; i < n; i++) {
       const key = arr[i];
       let j = i - 1;
@@ -154,7 +154,7 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
         array: [...arr],
         comparing: [i],
         swapping: [],
-        sorted: Array.from(locked),
+        sorted: Array.from(sortedSet),
         conceptTitle: `Pick Key = ${key} at Index [${i}]`,
         explanation: `Compare Key (${key}) against the sorted elements on its left to find where it fits.`,
         logText: `Selected Key = ${key} at [${i}]`,
@@ -167,7 +167,7 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
           array: [...arr],
           comparing: [],
           swapping: [j, j + 1],
-          sorted: Array.from(locked),
+          sorted: Array.from(sortedSet),
           conceptTitle: `Shift ${arr[j + 1]} Right`,
           explanation: `Since ${arr[j + 1]} > Key (${key}), shift ${arr[j + 1]} right to index [${j + 1}].`,
           logText: `Shifted ${arr[j + 1]} right; Key ${key} at [${j}]`,
@@ -175,7 +175,7 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
         });
         j--;
       }
-      locked.add(i);
+      sortedSet.add(i);
     }
   } else if (algo === "quick") {
     const quick = (low: number, high: number) => {
@@ -187,7 +187,7 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
             array: [...arr],
             comparing: [j, high],
             swapping: [],
-            sorted: Array.from(locked),
+            sorted: Array.from(sortedSet),
             conceptTitle: `Partitioning with Pivot = ${pivot} at [${high}]`,
             explanation: `Compare [${j}] (${arr[j]}) with Pivot (${pivot}). Values smaller than ${pivot} move to the left side.`,
             logText: `Compare [${j}]=${arr[j]} vs Pivot=${pivot}`,
@@ -201,7 +201,7 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
                 array: [...arr],
                 comparing: [],
                 swapping: [i, j],
-                sorted: Array.from(locked),
+                sorted: Array.from(sortedSet),
                 conceptTitle: `Move ${arr[i]} Left of Pivot`,
                 explanation: `${arr[i]} < ${pivot}, so swap [${i}] and [${j}].`,
                 logText: `Swapped [${i}] ↔ [${j}]`,
@@ -212,21 +212,21 @@ function buildSortSteps(initialArr: number[], algo: SortAlgo): SortStep[] {
         }
         [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
         const pi = i + 1;
-        locked.add(pi);
+        sortedSet.add(pi);
         steps.push({
           array: [...arr],
           comparing: [],
           swapping: [pi, high],
-          sorted: Array.from(locked),
-          conceptTitle: `Pivot ${pivot} Locked at Index [${pi}]`,
+          sorted: Array.from(sortedSet),
+          conceptTitle: `Pivot ${pivot} Sorted at Index [${pi}]`,
           explanation: `All elements left of [${pi}] are smaller than ${pivot}; all elements right are larger.`,
-          logText: `Pivot ${pivot} placed at [${pi}]`,
+          logText: `Pivot ${pivot} placed in sorted index [${pi}]`,
           sound: "step",
         });
         quick(low, pi - 1);
         quick(pi + 1, high);
       } else if (low === high) {
-        locked.add(low);
+        sortedSet.add(low);
       }
     };
     quick(0, n - 1);
@@ -357,7 +357,7 @@ export default function SortingVisualizerPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-4">
-      {/* 1. Top Variant Bar (Exact Linked List Style) */}
+      {/* 1. Top Variant Bar */}
       <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-2xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-xs font-medium text-slate-500">Algorithm:</span>
@@ -384,7 +384,7 @@ export default function SortingVisualizerPage() {
         </span>
       </div>
 
-      {/* 2. Middle Split Row: Controls Card (Left) + Live Execution Log Card (Right) */}
+      {/* 2. Middle Split Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3.5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
@@ -543,7 +543,7 @@ export default function SortingVisualizerPage() {
               tag = "COMPARE";
             } else if (isDone) {
               barColor = "bg-emerald-500 border-emerald-600";
-              tag = "LOCKED";
+              tag = "SORTED";
             }
 
             return (
@@ -591,7 +591,7 @@ export default function SortingVisualizerPage() {
             <span className="w-2.5 h-2.5 rounded bg-rose-500 inline-block" /> Swapping
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block" /> Sorted &amp; Locked
+            <span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block" /> Sorted
           </span>
         </div>
       </div>

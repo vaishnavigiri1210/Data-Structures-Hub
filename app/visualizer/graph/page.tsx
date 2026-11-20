@@ -7,6 +7,7 @@ interface GraphNode {
   id: string;
   x: number;
   y: number;
+  level: number;
 }
 
 interface GraphEdge {
@@ -18,21 +19,23 @@ interface GraphStep {
   activeNode: string | null;
   visitedOrder: string[];
   frontier: string[];
-  activeEdges: string[];
+  discoveredEdges: string[];
+  activeEdge: string | null;
   conceptTitle: string;
   explanation: string;
   logText: string;
   sound?: "step" | "done";
 }
 
+// Clean layered tree-like graph so BFS (Level-by-Level) vs DFS (Deep Branch) is crystal clear
 const NODES: GraphNode[] = [
-  { id: "A", x: 250, y: 40 },
-  { id: "B", x: 130, y: 120 },
-  { id: "C", x: 370, y: 120 },
-  { id: "D", x: 65, y: 225 },
-  { id: "E", x: 195, y: 225 },
-  { id: "F", x: 305, y: 225 },
-  { id: "G", x: 435, y: 225 },
+  { id: "A", x: 260, y: 48, level: 0 },
+  { id: "B", x: 140, y: 138, level: 1 },
+  { id: "C", x: 380, y: 138, level: 1 },
+  { id: "D", x: 75, y: 235, level: 2 },
+  { id: "E", x: 205, y: 235, level: 2 },
+  { id: "F", x: 325, y: 235, level: 2 },
+  { id: "G", x: 445, y: 235, level: 2 },
 ];
 
 const EDGES: GraphEdge[] = [
@@ -60,7 +63,7 @@ function generateGraphSteps(startNode: string, algo: "BFS" | "DFS"): GraphStep[]
   const visited = new Set<string>();
   const order: string[] = [];
   const container: string[] = [startNode];
-  const edgesUsed: string[] = [];
+  const discoveredEdges: string[] = [];
 
   if (algo === "BFS") visited.add(startNode);
 
@@ -68,16 +71,17 @@ function generateGraphSteps(startNode: string, algo: "BFS" | "DFS"): GraphStep[]
     activeNode: null,
     visitedOrder: [],
     frontier: [...container],
-    activeEdges: [],
+    discoveredEdges: [],
+    activeEdge: null,
     conceptTitle:
       algo === "BFS"
-        ? "Breadth-First Search (BFS) — Level by Level"
-        : "Depth-First Search (DFS) — Branch by Branch",
+        ? "BFS (Breadth-First Search) — Explores Layer by Layer"
+        : "DFS (Depth-First Search) — Explores Deep Down One Path First",
     explanation:
       algo === "BFS"
-        ? `BFS uses a FIFO Queue. Starting at '${startNode}', it visits all immediate neighbors before moving deeper.`
-        : `DFS uses a LIFO Stack. Starting at '${startNode}', it dives as deep as possible along one branch before backtracking.`,
-    logText: `Workspace ready. Start vertex = ${startNode} (${algo}).`,
+        ? `BFS puts start node '${startNode}' into a FIFO Queue. It visits all Level 1 neighbors before moving to Level 2.`
+        : `DFS pushes start node '${startNode}' onto a LIFO Stack. It follows one branch all the way down before backtracking.`,
+    logText: `Workspace ready. Start = ${startNode} (${algo}).`,
   });
 
   while (container.length > 0) {
@@ -94,15 +98,17 @@ function generateGraphSteps(startNode: string, algo: "BFS" | "DFS"): GraphStep[]
       activeNode: current,
       visitedOrder: [...order],
       frontier: [...container],
-      activeEdges: [...edgesUsed],
-      conceptTitle:
+      discoveredEdges: [...discoveredEdges],
+      activeEdge: null,
+      conceptTitle: `Step #${order.length}: Visit Node '${current}'`,
+      explanation: `${
         algo === "BFS"
-          ? `Dequeue '${current}' from Front of Queue`
-          : `Pop '${current}' from Top of Stack`,
-      explanation: `Mark vertex '${current}' as Visited. Next, inspect its adjacent neighbors: [ ${ADJ_LIST[
+          ? `Removed '${current}' from the FRONT of the Queue.`
+          : `Popped '${current}' from the TOP of the Stack.`
+      } Marked '${current}' as Visited (#${order.length}). Checking neighbors: [ ${ADJ_LIST[
         current
       ].join(", ")} ].`,
-      logText: `Visited vertex ${current}`,
+      logText: `Visited #${order.length}: ${current}`,
       sound: "step",
     });
 
@@ -113,20 +119,20 @@ function generateGraphSteps(startNode: string, algo: "BFS" | "DFS"): GraphStep[]
       if (!visited.has(neighbor)) {
         if (algo === "BFS") visited.add(neighbor);
         container.push(neighbor);
-        edgesUsed.push(`${current}-${neighbor}`, `${neighbor}-${current}`);
+        const edgeKey = `${current}-${neighbor}`;
+        discoveredEdges.push(edgeKey, `${neighbor}-${current}`);
 
         steps.push({
           activeNode: current,
           visitedOrder: [...order],
           frontier: [...container],
-          activeEdges: [...edgesUsed],
-          conceptTitle: `Discovered Unvisited Neighbor '${neighbor}'`,
-          explanation: `Edge (${current} — ${neighbor}): '${neighbor}' has not been visited yet, so push it into the ${
-            algo === "BFS" ? "Queue" : "Stack"
-          }.`,
-          logText: `Edge ${current} → ${neighbor} | Added ${neighbor} to ${
-            algo === "BFS" ? "Queue" : "Stack"
-          }`,
+          discoveredEdges: [...discoveredEdges],
+          activeEdge: edgeKey,
+          conceptTitle: `Follow Edge ${current} → ${neighbor}`,
+          explanation: `Neighbor '${neighbor}' is unvisited! Added '${neighbor}' to the ${
+            algo === "BFS" ? "BACK of the Queue" : "TOP of the Stack"
+          } to visit later.`,
+          logText: `Edge ${current} → ${neighbor} (queued ${neighbor})`,
           sound: "step",
         });
       }
@@ -137,10 +143,13 @@ function generateGraphSteps(startNode: string, algo: "BFS" | "DFS"): GraphStep[]
     activeNode: null,
     visitedOrder: [...order],
     frontier: [],
-    activeEdges: [...edgesUsed],
-    conceptTitle: `${algo} Traversal Complete!`,
-    explanation: `Every reachable vertex has been visited. Order: ${order.join(" → ")}.`,
-    logText: `${algo} finished: ${order.join(" → ")}`,
+    discoveredEdges: [...discoveredEdges],
+    activeEdge: null,
+    conceptTitle: `${algo} Complete! Visited All ${order.length} Nodes`,
+    explanation: `Final Traversal Sequence: ${order
+      .map((n, i) => `#${i + 1} ${n}`)
+      .join("  →  ")}`,
+    logText: `${algo} Complete: ${order.join(" → ")}`,
     sound: "done",
   });
 
@@ -226,7 +235,7 @@ export default function GraphVisualizerPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-4">
-      {/* 1. Top Variant Bar (Exact Linked List Style) */}
+      {/* 1. Top Variant Bar */}
       <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-2xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="text-xs font-medium text-slate-500">Algorithm:</span>
@@ -241,7 +250,7 @@ export default function GraphVisualizerPage() {
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                {mode === "BFS" ? "BFS (Queue)" : "DFS (Stack)"}
+                {mode === "BFS" ? "BFS (Queue — Level Order)" : "DFS (Stack — Deep First)"}
               </button>
             ))}
           </div>
@@ -251,7 +260,7 @@ export default function GraphVisualizerPage() {
         </span>
       </div>
 
-      {/* 2. Middle Split Row: Controls Card (Left) + Live Execution Log Card (Right) */}
+      {/* 2. Middle Split Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3.5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
@@ -369,7 +378,7 @@ export default function GraphVisualizerPage() {
 
       {/* 3. Main Full-Width Visualization Canvas */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-4">
-        {/* Plain-English Concept Banner */}
+        {/* Concept & Plain-English Step Banner */}
         <div className="bg-blue-50/80 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3">
           <span className="text-base mt-0.5">💡</span>
           <div>
@@ -383,15 +392,48 @@ export default function GraphVisualizerPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          {/* Interactive Graph SVG */}
-          <div className="lg:col-span-7 flex justify-center">
-            <svg width="500" height="265" viewBox="0 0 500 265" className="max-w-full">
+          {/* Interactive Graph SVG with Layer Guides & Step Number Badges */}
+          <div className="lg:col-span-7 flex justify-center bg-slate-50/60 border border-slate-100 rounded-xl p-3">
+            <svg width="520" height="285" viewBox="0 0 520 285" className="max-w-full">
+              {/* Subtle Horizontal Layer Guides for Beginner Clarity */}
+              {[
+                { y: 48, label: "Layer 0" },
+                { y: 138, label: "Layer 1" },
+                { y: 235, label: "Layer 2" },
+              ].map((layer) => (
+                <g key={layer.label}>
+                  <line
+                    x1="15"
+                    y1={layer.y}
+                    x2="505"
+                    y2={layer.y}
+                    stroke="#e2e8f0"
+                    strokeDasharray="4 4"
+                    strokeWidth="1"
+                  />
+                  <text
+                    x="18"
+                    y={layer.y - 6}
+                    fill="#94a3b8"
+                    fontSize="10"
+                    fontFamily="monospace"
+                  >
+                    {layer.label}
+                  </text>
+                </g>
+              ))}
+
+              {/* Edges */}
               {EDGES.map((edge, i) => {
                 const u = NODES.find((n) => n.id === edge.from)!;
                 const v = NODES.find((n) => n.id === edge.to)!;
-                const active = currentStep.activeEdges.includes(
+                const isDiscovered = currentStep.discoveredEdges.includes(
                   `${edge.from}-${edge.to}`
                 );
+                const isCurrentEdge =
+                  currentStep.activeEdge === `${edge.from}-${edge.to}` ||
+                  currentStep.activeEdge === `${edge.to}-${edge.from}`;
+
                 return (
                   <line
                     key={i}
@@ -399,14 +441,23 @@ export default function GraphVisualizerPage() {
                     y1={u.y}
                     x2={v.x}
                     y2={v.y}
-                    stroke={active ? "#10b981" : "#cbd5e1"}
-                    strokeWidth={active ? "3.5" : "2"}
+                    stroke={
+                      isCurrentEdge
+                        ? "#f59e0b"
+                        : isDiscovered
+                        ? "#10b981"
+                        : "#cbd5e1"
+                    }
+                    strokeWidth={isCurrentEdge ? "4" : isDiscovered ? "3" : "2"}
                   />
                 );
               })}
+
+              {/* Vertices + Visit Step Number Badges (#1, #2, ...) */}
               {NODES.map((node) => {
                 const isActive = currentStep.activeNode === node.id;
-                const isVisited = currentStep.visitedOrder.includes(node.id);
+                const visitIdx = currentStep.visitedOrder.indexOf(node.id);
+                const isVisited = visitIdx !== -1;
                 const isFrontier = currentStep.frontier.includes(node.id);
 
                 let fill = "#2563eb";
@@ -423,20 +474,45 @@ export default function GraphVisualizerPage() {
                     }}
                     className="cursor-pointer"
                   >
+                    {/* Visit Order Pill above Visited Node */}
+                    {isVisited && (
+                      <g>
+                        <rect
+                          x={node.x - 14}
+                          y={node.y - 38}
+                          width="28"
+                          height="15"
+                          rx="4"
+                          fill="#065f46"
+                        />
+                        <text
+                          x={node.x}
+                          y={node.y - 27}
+                          textAnchor="middle"
+                          fill="#ffffff"
+                          fontSize="9"
+                          fontWeight="bold"
+                          fontFamily="monospace"
+                        >
+                          #{visitIdx + 1}
+                        </text>
+                      </g>
+                    )}
+
                     <circle
                       cx={node.x}
                       cy={node.y}
                       r="22"
                       fill={fill}
-                      stroke={startNode === node.id ? "#0f172a" : "none"}
-                      strokeWidth={startNode === node.id ? "2.5" : "0"}
+                      stroke={startNode === node.id ? "#0f172a" : "#ffffff"}
+                      strokeWidth="2.5"
                     />
                     <text
                       x={node.x}
                       y={node.y + 5}
                       textAnchor="middle"
                       fill="#ffffff"
-                      fontSize="13"
+                      fontSize="14"
                       fontWeight="bold"
                     >
                       {node.id}
@@ -447,15 +523,16 @@ export default function GraphVisualizerPage() {
             </svg>
           </div>
 
-          {/* Right Side: Live Queue / Stack & Visited Memory State */}
+          {/* Right Side: Live Queue/Stack + Visited Order + Adjacency List */}
           <div className="lg:col-span-5 space-y-3">
+            {/* Frontier Memory */}
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
               <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                 {algo === "BFS"
-                  ? "Queue Memory (FIFO — Front Left)"
-                  : "Stack Memory (LIFO — Top Right)"}
+                  ? "Queue Memory (FIFO — Next Out is Leftmost)"
+                  : "Stack Memory (LIFO — Next Out is Rightmost)"}
               </div>
-              <div className="flex flex-wrap items-center gap-2 min-h-[34px]">
+              <div className="flex flex-wrap items-center gap-2 min-h-[32px]">
                 {currentStep.frontier.length === 0 ? (
                   <span className="font-mono text-xs text-slate-400">
                     [ Empty ]
@@ -473,20 +550,21 @@ export default function GraphVisualizerPage() {
               </div>
             </div>
 
-            <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl">
+            {/* Visited Sequence */}
+            <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl">
               <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 mb-2">
-                Visited Sequence
+                Visited Order
               </div>
-              <div className="flex flex-wrap items-center gap-1.5 min-h-[34px]">
+              <div className="flex flex-wrap items-center gap-1.5 min-h-[32px]">
                 {currentStep.visitedOrder.length === 0 ? (
                   <span className="font-mono text-xs text-slate-400">
                     [ None yet ]
                   </span>
                 ) : (
                   currentStep.visitedOrder.map((v, idx) => (
-                    <span key={v} className="flex items-center gap-1.5">
-                      <span className="px-2.5 py-1 bg-emerald-600 text-white rounded font-mono font-bold text-xs">
-                        {v}
+                    <span key={v} className="flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-emerald-600 text-white rounded font-mono font-bold text-xs">
+                        #{idx + 1} {v}
                       </span>
                       {idx < currentStep.visitedOrder.length - 1 && (
                         <span className="text-slate-400 font-mono text-xs">→</span>
@@ -494,6 +572,27 @@ export default function GraphVisualizerPage() {
                     </span>
                   ))
                 )}
+              </div>
+            </div>
+
+            {/* Adjacency List Reference */}
+            <div className="p-3 bg-white border border-slate-200 rounded-xl">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Adjacency List (Neighbors)
+              </div>
+              <div className="grid grid-cols-2 gap-1 font-mono text-[11px] text-slate-600">
+                {Object.entries(ADJ_LIST).map(([vertex, neighbors]) => (
+                  <div
+                    key={vertex}
+                    className={`px-2 py-0.5 rounded ${
+                      currentStep.activeNode === vertex
+                        ? "bg-amber-100 text-amber-900 font-bold"
+                        : ""
+                    }`}
+                  >
+                    {vertex} → [{neighbors.join(", ")}]
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -505,13 +604,13 @@ export default function GraphVisualizerPage() {
             <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" /> Unvisited
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> In {algo === "BFS" ? "Queue" : "Stack"}
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> Waiting in {algo === "BFS" ? "Queue" : "Stack"}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Current Vertex
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Visited
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Visited (#Order)
           </span>
         </div>
       </div>
