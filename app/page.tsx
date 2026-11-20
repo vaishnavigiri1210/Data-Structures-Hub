@@ -1,129 +1,124 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { getStoredUser } from "@/lib/supabaseClient";
 
-const MODULES = [
+const CARDS = [
   {
-    title: "Stack (LIFO)",
-    tag: "Linear",
-    desc: "Push, Pop, and Peek elements with capacity limits.",
-    href: "/visualizer/stack",
+    title: "Stack",
+    badge: "LIFO",
     icon: "🥞",
-    complexity: "O(1)",
+    desc: "Push, Pop, and Peek operations with top pointer tracking and overflow detection.",
+    href: "/visualizer/stack",
+    linkColor: "text-blue-600",
   },
   {
-    title: "Queue (3 Types)",
-    tag: "Linear",
-    desc: "Linear, Circular, and Double-Ended (Deque) operations.",
-    href: "/visualizer/queue",
+    title: "Queue Suite",
+    badge: "3 Types",
     icon: "🚶",
-    complexity: "O(1)",
+    desc: "Linear FIFO Queue, Circular Ring Buffer with modulo calculation, and Double-Ended Deque.",
+    href: "/visualizer/queue",
+    linkColor: "text-emerald-600",
   },
   {
-    title: "Linked List (3 Types)",
-    tag: "Linear",
-    desc: "Singly, Doubly, and Circular pointer manipulation.",
-    href: "/visualizer/linked-list",
+    title: "Linked Lists",
+    badge: "3 Types",
     icon: "🔗",
-    complexity: "O(1) / O(n)",
+    desc: "Singly, Doubly, and Circular Linked Lists with insert at index, delete, and step search.",
+    href: "/visualizer/linked-list",
+    linkColor: "text-cyan-600",
   },
   {
     title: "Binary Search Tree",
-    tag: "Non-Linear",
-    desc: "Insert, Search, and Inorder / Preorder / Postorder walks.",
-    href: "/visualizer/tree",
+    badge: "BST",
     icon: "🌳",
-    complexity: "O(log n)",
+    desc: "Insert nodes, search values, and animate Inorder, Preorder, and Postorder traversals.",
+    href: "/visualizer/tree",
+    linkColor: "text-emerald-600",
   },
   {
-    title: "Graph (BFS / DFS)",
-    tag: "Non-Linear",
-    desc: "Step-by-step Breadth-First and Depth-First traversal.",
-    href: "/visualizer/graph",
+    title: "Graph Traversal",
+    badge: "BFS & DFS",
     icon: "🕸️",
-    complexity: "O(V + E)",
+    desc: "Breadth-First (Queue) and Depth-First (Stack) vertex exploration with live frontier state.",
+    href: "/visualizer/graph",
+    linkColor: "text-purple-600",
   },
   {
-    title: "Sorting Algorithms",
-    tag: "Algorithms",
-    desc: "Bubble, Selection, Insertion, and Quick Sort step-by-step.",
-    href: "/visualizer/sorting",
+    title: "Sorting Suite",
+    badge: "4 Algorithms",
     icon: "📊",
-    complexity: "O(n log n)",
+    desc: "Bubble, Selection, Insertion, and Quick Sort with step-by-step comparisons and swaps.",
+    href: "/visualizer/sorting",
+    linkColor: "text-blue-600",
   },
 ];
 
 export default function HomePage() {
-  const [userName, setUserName] = useState<string | null>(null);
-
-  useEffect(() => {
-    const user = getStoredUser();
-    if (user) {
-      setUserName(user.name || user.email.split("@")[0]);
-    }
-  }, []);
-
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      {/* Simple Header */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">
-            {userName ? `Welcome, ${userName}` : "Data Structure HUB"}
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Choose a data structure or algorithm below to start visualizing step by step.
-          </p>
-        </div>
+    <div className="p-8 max-w-6xl mx-auto">
+      {/* Centered Hero Title */}
+      <div className="text-center max-w-xl mx-auto pt-4 pb-8">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+          Data Structure <span className="text-blue-600">Visualizer</span>
+        </h1>
+        <p className="text-sm text-slate-500 mt-3 leading-relaxed">
+          Interactive step-by-step visualizations for operations in Stacks, Queues,
+          Linked Lists, Trees, Graphs, and Sorting with custom manual inputs.
+        </p>
 
-        {!userName && (
-          <div className="flex items-center gap-2">
-            <Link
-              href="/auth/login"
-              className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
-            >
-              Sign Up
-            </Link>
+        {/* 3-Column Metrics Row */}
+        <div className="grid grid-cols-3 divide-x divide-slate-200 max-w-md mx-auto mt-8">
+          <div className="px-4">
+            <div className="text-2xl font-extrabold text-slate-900">12+</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
+              Variants
+            </div>
           </div>
-        )}
+          <div className="px-4">
+            <div className="text-2xl font-extrabold text-blue-600">6</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
+              Modules
+            </div>
+          </div>
+          <div className="px-4">
+            <div className="text-2xl font-extrabold text-slate-900">Live</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
+              Execution
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Clean 3x2 Module Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {MODULES.map((item) => (
+      {/* Clean White Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-2">
+        {CARDS.map((card) => (
           <Link
-            key={item.href}
-            href={item.href}
-            className="group bg-white border border-slate-200 hover:border-blue-500 rounded-xl p-5 transition-all flex flex-col justify-between gap-4"
+            key={card.href}
+            href={card.href}
+            className="group bg-white border border-slate-200 hover:border-blue-300 rounded-2xl p-6 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-5"
           >
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xl">{item.icon}</span>
-                <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                  {item.tag}
+                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-lg">
+                  {card.icon}
+                </div>
+                <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                  {card.badge}
                 </span>
               </div>
-              <h2 className="text-sm font-bold text-slate-900 group-hover:text-blue-600">
-                {item.title}
-              </h2>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {item.desc}
-              </p>
+
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  {card.title}
+                </h2>
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  {card.desc}
+                </p>
+              </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="font-mono text-[11px] text-slate-400">
-                {item.complexity}
-              </span>
-              <span className="font-semibold text-blue-600">Open →</span>
+            <div className={`text-xs font-bold ${card.linkColor} group-hover:translate-x-0.5 transition-transform`}>
+              Open Visualizer →
             </div>
           </Link>
         ))}
