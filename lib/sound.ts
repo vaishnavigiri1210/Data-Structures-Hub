@@ -53,6 +53,14 @@ class SoundEngine {
     setTimeout(() => this.playTone(783.99, "triangle", 0.16, 0.32), 65);
   }
 
+  public playPush() {
+    this.playInsert();
+  }
+
+  public playClick() {
+    this.playStep();
+  }
+
   public playDelete() {
     this.playTone(329.63, "triangle", 0.1, 0.32);
     setTimeout(() => this.playTone(220.0, "triangle", 0.14, 0.3), 60);

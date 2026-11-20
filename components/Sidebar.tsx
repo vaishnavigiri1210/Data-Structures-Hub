@@ -32,6 +32,9 @@ export default function Sidebar() {
     { name: "Stack (LIFO)", href: "/visualizer/stack", icon: "🥞" },
     { name: "Queue (3 Types)", href: "/visualizer/queue", icon: "🚶" },
     { name: "Linked List (3 Types)", href: "/visualizer/linked-list", icon: "🔗" },
+    { name: "Binary Search Tree", href: "/visualizer/tree", icon: "🌳" },
+    { name: "Graph (BFS / DFS)", href: "/visualizer/graph", icon: "🕸️" },
+    { name: "Sorting Algorithms", href: "/visualizer/sorting", icon: "📊" },
   ];
 
   return (
