@@ -13,6 +13,8 @@ export default function Header() {
     const user = getStoredUser();
     if (user?.email) {
       setUserName(user.email.split("@")[0]);
+    } else {
+      setUserName("Guest Learner");
     }
   }, [pathname]);
 
@@ -20,8 +22,13 @@ export default function Header() {
     if (pathname.includes("stack")) return "Stack Visualizer";
     if (pathname.includes("queue")) return "Queue Suite";
     if (pathname.includes("linked-list")) return "Linked List Visualizer";
+    if (pathname.includes("tree")) return "Binary Search Tree";
+    if (pathname.includes("graph")) return "Graph Traversal (BFS / DFS)";
+    if (pathname.includes("sorting")) return "Sorting Algorithms";
     if (pathname.includes("login")) return "Sign In";
     if (pathname.includes("signup")) return "Create Account";
+    if (pathname.includes("forgot-password")) return "Reset Password";
+    if (pathname.includes("update-password")) return "Update Password";
     return "Dashboard";
   };
 
